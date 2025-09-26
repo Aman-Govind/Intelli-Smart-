@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Room Energy Manager</title>
+  <link rel="stylesheet" href="styles.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+</head>
+<body class="demo-page">
+  <!-- Splash Screen -->
+  <div id="intro">
+    <img src="logo.png" alt="Logo Animation" id="logo">
+  </div>
+
+  <!-- Dashboard (hidden initially) -->
+  <div id="dashboard" style="display: none;">
+    <header>
+      <h1>Smart Room Energy Manager</h1>
+    </header>
+    <main>
+      <div id="motionCard">Motion: --</div>
+      <div id="tempCard">Temp/Humidity: --</div>
+      <div id="currentCard">Current: --</div>
+      <canvas id="energyChart"></canvas>
+    </main>
+  </div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_AUTH_DOMAIN",
+      databaseURL: "YOUR_DB_URL",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_STORAGE_BUCKET",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+    try {
+      if (!firebase.apps || !firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+      }
+      window.demoDb = firebase.database();
+    } catch (e) {
+      console.warn('Firebase init failed in demo.html. Fill config to enable.', e);
+    }
+  </script>
+  <script>
+    (function(){
+      if (!window.demoDb) return;
+      const motionCard = document.getElementById('motionCard');
+      const tempCard = document.getElementById('tempCard');
+      const currentCard = document.getElementById('currentCard');
+      const energyCanvas = document.getElementById('energyChart');
+      let energyChart;
+
+      try {
+        window.demoDb.ref('motion').on('value', (snapshot) => {
+          if (!motionCard) return;
+          const val = snapshot.val();
+          motionCard.innerText = val ? 'Motion: ON' : 'Motion: OFF';
+        });
+
+        window.demoDb.ref('temperature').on('value', (snapshot) => {
+          if (!tempCard) return;
+          const data = snapshot.val() || {};
+          tempCard.innerText = `Temp/Humidity: ${data.temp}\u00B0C / ${data.humidity}%`;
+        });
+
+        window.demoDb.ref('current').on('value', (snapshot) => {
+          if (!currentCard) return;
+          const amps = snapshot.val();
+          currentCard.innerText = `Current: ${amps} A`;
+        });
+
+        // Energy chart
+        if (window.Chart && energyCanvas) {
+          const ctx = energyCanvas.getContext('2d');
+          energyChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+              labels: [],
+              datasets: [{
+                label: 'Energy Usage (kWh)',
+                data: [],
+                borderColor: '#1e90ff',
+                backgroundColor: 'rgba(40,167,69,0.2)',
+                fill: true,
+                tension: 0.35,
+                pointRadius: 0
+              }]
+            },
+            options: { responsive: true, maintainAspectRatio: false }
+          });
+
+          window.demoDb.ref('energy').on('value', (snapshot) => {
+            if (!energyChart) return;
+            const data = snapshot.val() || [];
+            try {
+              energyChart.data.labels = data.map(d => d.time);
+              energyChart.data.datasets[0].data = data.map(d => d.value);
+              energyChart.update('none');
+            } catch (e) {
+              console.warn('Energy data format unexpected', e);
+            }
+          });
+        }
+      } catch (e) {
+        console.warn('Realtime listeners failed to attach in demo.html', e);
+      }
+    })();
+  </script>
+  <script src="app.js"></script>
+</body>
+</html>
+
