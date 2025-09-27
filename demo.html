@@ -31,6 +31,13 @@
           <span class="switch-label">Fan</span>
         </div>
       </div>
+      <div class="card">
+        <div class="switch">
+          <input type="checkbox" id="lightToggle">
+          <div class="slider"></div>
+          <span class="switch-label">Light</span>
+        </div>
+      </div>
       <canvas id="energyChart"></canvas>
     </main>
   </div>
@@ -134,6 +141,29 @@
             const fanStatus = snapshot.val();
             if (fanStatus === 'on' || fanStatus === 'off') {
               fanToggle.checked = fanStatus === 'on';
+            }
+          });
+        }
+
+        // Light toggle functionality
+        const lightToggle = document.getElementById('lightToggle');
+        if (lightToggle) {
+          // Listen for changes on the toggle
+          lightToggle.addEventListener('change', function() {
+            const lightStatus = lightToggle.checked ? 'on' : 'off';
+            try {
+              window.demoDb.ref('lightStatus').set(lightStatus);
+              console.log('Light status updated to:', lightStatus);
+            } catch (e) {
+              console.warn('Failed to update light status:', e);
+            }
+          });
+
+          // Listen for changes from Firebase to sync the toggle state
+          window.demoDb.ref('lightStatus').on('value', (snapshot) => {
+            const lightStatus = snapshot.val();
+            if (lightStatus === 'on' || lightStatus === 'off') {
+              lightToggle.checked = lightStatus === 'on';
             }
           });
         }
