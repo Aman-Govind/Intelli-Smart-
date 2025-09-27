@@ -337,6 +337,7 @@
         controls: 'controls',
         fanStatus: 'fanStatus',
         lightStatus: 'lightStatus',
+        motionStatus: 'motionStatus',
       };
 
       let listenersBound = false;
@@ -347,6 +348,23 @@
           const data = snap.val();
           setMotionUI(Boolean(data && (data.value ?? data)));
           hideIntro('motion');
+        });
+
+        // Motion status listener for real-time motion detection
+        rtdb.ref(paths.motionStatus).on('value', (snap) => {
+          const status = snap.val();
+          if (status === 'detected') {
+            el.motionStatus.textContent = 'Motion: ✅ Detected';
+            el.motionStatus.classList.add('on');
+            el.motionStatus.classList.remove('off');
+            el.cardMotion.classList.add('active');
+          } else {
+            el.motionStatus.textContent = 'Motion: ❌ No Motion';
+            el.motionStatus.classList.add('off');
+            el.motionStatus.classList.remove('on');
+            el.cardMotion.classList.remove('active');
+          }
+          hideIntro('motionStatus');
         });
 
         rtdb.ref(paths.dht).on('value', (snap) => {
@@ -426,7 +444,7 @@
 
       el.refreshBtn.addEventListener('click', async () => {
         if (!rtdb) return;
-        const [m, d, c, en, ctl, fanStatus, lightStatus] = await Promise.all([
+        const [m, d, c, en, ctl, fanStatus, lightStatus, motionStatus] = await Promise.all([
           rtdb.ref(paths.motion).get(),
           rtdb.ref(paths.dht).get(),
           rtdb.ref(paths.current).get(),
@@ -434,6 +452,7 @@
           rtdb.ref(paths.controls).get(),
           rtdb.ref(paths.fanStatus).get(),
           rtdb.ref(paths.lightStatus).get(),
+          rtdb.ref(paths.motionStatus).get(),
         ]);
         const mv = m.val();
         setMotionUI(Boolean(mv && (mv.value ?? mv)));
@@ -459,6 +478,20 @@
         const lightStatusVal = lightStatus.val();
         if (lightStatusVal === 'on' || lightStatusVal === 'off') {
           el.toggleLights.checked = lightStatusVal === 'on';
+        }
+        
+        // Handle motion status
+        const motionStatusVal = motionStatus.val();
+        if (motionStatusVal === 'detected') {
+          el.motionStatus.textContent = 'Motion: ✅ Detected';
+          el.motionStatus.classList.add('on');
+          el.motionStatus.classList.remove('off');
+          el.cardMotion.classList.add('active');
+        } else {
+          el.motionStatus.textContent = 'Motion: ❌ No Motion';
+          el.motionStatus.classList.add('off');
+          el.motionStatus.classList.remove('on');
+          el.cardMotion.classList.remove('active');
         }
       });
 
