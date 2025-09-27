@@ -24,6 +24,13 @@
       <div id="motionCard">Motion: --</div>
       <div id="tempCard">Temp/Humidity: --</div>
       <div id="currentCard">Current: --</div>
+      <div class="card">
+        <div class="switch">
+          <input type="checkbox" id="fanToggle">
+          <div class="slider"></div>
+          <span class="switch-label">Fan</span>
+        </div>
+      </div>
       <canvas id="energyChart"></canvas>
     </main>
   </div>
@@ -104,6 +111,29 @@
               energyChart.update('none');
             } catch (e) {
               console.warn('Energy data format unexpected', e);
+            }
+          });
+        }
+
+        // Fan toggle functionality
+        const fanToggle = document.getElementById('fanToggle');
+        if (fanToggle) {
+          // Listen for changes on the toggle
+          fanToggle.addEventListener('change', function() {
+            const fanStatus = fanToggle.checked ? 'on' : 'off';
+            try {
+              window.demoDb.ref('fanStatus').set(fanStatus);
+              console.log('Fan status updated to:', fanStatus);
+            } catch (e) {
+              console.warn('Failed to update fan status:', e);
+            }
+          });
+
+          // Listen for changes from Firebase to sync the toggle state
+          window.demoDb.ref('fanStatus').on('value', (snapshot) => {
+            const fanStatus = snapshot.val();
+            if (fanStatus === 'on' || fanStatus === 'off') {
+              fanToggle.checked = fanStatus === 'on';
             }
           });
         }
